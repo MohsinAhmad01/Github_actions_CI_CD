@@ -1,0 +1,67 @@
+name: Node.js Production CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+# Cancel older running pipelines if you push new commits quickly
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-pipeline:
+    name: Validate, Test & Build
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "$MONGO_URI" ]; then
+            echo "::error::MONGO_URI secret is missing in GitHub Repository Secrets!"
+            exit 1
+          fi
+          if [ -z "$JWT_SECRET_KEY" ]; then
+            echo "::error::JWT_SECRET_KEY secret is missing in GitHub Repository Secrets!"
+            exit 1
+          fi
+
+
+      # 3. Set up Node.js 22 with npm cache
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      # 4. Install exact lockfile dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 5. Audit dependencies for high/critical security vulnerabilities
+      - name: Security audit
+        run: npm audit --audit-level=high
+
+      # 6. Syntax & static verification
+      - name: Run syntax check
+        run: npm run lint
+
+      # 7. Run integration tests against MongoDB from GitHub Secrets
+      - name: Run integration tests
+        run: npm test
+
+      # 8. Build Docker image (runs automatically once you add a Dockerfile)
+      - name: Verify Docker build
+        if: hashFiles('Dockerfile') != ''
+        run: docker build -t node-app:${{ github.sha }} .
