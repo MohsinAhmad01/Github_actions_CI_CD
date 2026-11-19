@@ -1,0 +1,26 @@
+name: First CI Workflow
+
+# 1. TRIGGER: Run when code is pushed to main, or manually from the Actions tab
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# 2. JOBS: Define the tasks to execute
+jobs:
+  build-and-test:
+    # 3. RUNNER: Spin up a fresh Ubuntu Linux VM
+    runs-on: ubuntu-latest
+
+    # 4. STEPS: Run commands sequentially
+    steps:
+      # Step A: Pull your repository code onto the Ubuntu runner
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      # Step B: Run a standard Linux shell command
+      - name: Print system info and list files
+        run: |
+          echo "Workflow triggered by $GITHUB_ACTOR"
+          uname -a
+          ls -la
