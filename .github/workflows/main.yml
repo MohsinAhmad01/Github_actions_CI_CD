@@ -1,26 +1,31 @@
-name: First CI Workflow
+name: Env and Secrets Demo
 
-# 1. TRIGGER: Run when code is pushed to main, or manually from the Actions tab
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
 
-# 2. JOBS: Define the tasks to execute
+# 1. WORKFLOW-LEVEL ENV: Available to all jobs and steps
+env:
+  APP_ENV: "production"
+  DEPLOY_REGION: "eastus"
+
 jobs:
-  build-and-test:
-    # 3. RUNNER: Spin up a fresh Ubuntu Linux VM
+  deploy-app:
     runs-on: ubuntu-latest
 
-    # 4. STEPS: Run commands sequentially
+    # 2. JOB-LEVEL ENV: Available to all steps in this job
+    env:
+      SERVER_USER: "ubuntu"
+
     steps:
-      # Step A: Pull your repository code onto the Ubuntu runner
-      - name: Checkout repository code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step B: Run a standard Linux shell command
-      - name: Print system info and list files
+      # 3. STEP-LEVEL ENV + SECRETS: Best practice for passing secrets to shell scripts
+      - name: Run script with env and secret
+        env:
+          MY_API_KEY: ${{ secrets.API_KEY }}
+          DB_PASS: ${{ secrets.DB_PASSWORD }}
         run: |
-          echo "Workflow triggered by $GITHUB_ACTOR"
-          uname -a
-          ls -la
+          echo "Environment is: $APP_ENV"
+          echo "Deploying to: $DEPLOY_REGION as $SERVER_USER"
+          echo "Secret output will be masked: $MY_API_KEY"
